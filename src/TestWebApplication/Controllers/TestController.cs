@@ -1,0 +1,126 @@
+using System;
+using System.Net;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using TestWebApplication.Models;
+using TestWebApplication.Repositories;
+
+// For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+
+namespace TestWebApplication.Controllers
+{
+    [AllowAnonymous]
+    [Route("test")]
+    [ApiController]
+    public class TestController : ControllerBase
+    {
+        private readonly IFakeVehicleRepository _fakeVehicleRepository;
+
+        public TestController(IFakeVehicleRepository fakeVehicleRepository)
+        {
+            _fakeVehicleRepository = fakeVehicleRepository ?? throw new ArgumentNullException(nameof(fakeVehicleRepository));
+        }
+
+        // GET: /test/1 | 200 OK.
+        [HttpGet("{id:int}", Name = "GetId")]
+        public ActionResult<FakeVehicle> Get(int id)
+        {
+            var model = _fakeVehicleRepository.Get(id);
+
+            return model == null
+                ? (ActionResult<FakeVehicle>) NotFound()
+                : Ok(model);
+        }
+
+        // GET: /test/notFound | 404 Not Found.
+        [HttpHead("notfound")]
+        [HttpGet("notfound")]
+        public IActionResult GetNotFound()
+        {
+            return NotFound();
+        }
+
+        // POST: /test | 201 Created.
+        [HttpPost]
+        public IActionResult Post([FromForm] FakeVehicle fakeVehicle)
+        {
+            if (!ModelState.IsValid)
+            {
+                throw new Exception("Model is invalid -> it should have been auto checked and auto 400 returned.");
+            }
+
+            _fakeVehicleRepository.Add(fakeVehicle);
+
+            return CreatedAtRoute("GetId", new { id = fakeVehicle.Id }, null);
+        }
+
+        // GET: /test/error | 500 Server Error.
+        [HttpGet("error")]
+        public IActionResult Error()
+        {
+            throw new Exception("Something bad ass happened.");
+        }
+
+        // GET: /test/dynamicError | 500 Server Error.
+        // This tests that an exception HTTP STATUS 500 doesn't get cached. 
+        [HttpGet("dynamicError")]
+        public IActionResult DynamicError()
+        {
+            throw new Exception(Guid.NewGuid().ToString());
+        }
+
+        // GET: /test/modelbindingerror | 400 Bad Request. (Model Binding failure check)
+        [HttpGet("modelbinding/{colour}")]
+        public IActionResult ModelBindingTest(ColourType colour = ColourType.Unknown)
+        {
+            return Ok(colour);
+        }
+
+        // GET: /test/validationerror | 400 Bad Request. (Manual validation check)
+        [HttpGet("validationerror")]
+        public IActionResult ValidationError()
+        {
+            ModelState.AddModelError("someProperty", "This property failed validation.");
+
+            var validationError = new ValidationProblemDetails(ModelState);
+            return BadRequest(validationError);
+        }
+
+        // Specific Status Code check | 409 Conflict.
+        [HttpGet("conflict")]
+        public IActionResult ConflictCheck()
+        {
+            var error = new ProblemDetails
+            {
+                Type = "https://httpstatuses.com/409",
+                Title = "Agent was already modified.",
+                Status = StatusCodes.Status409Conflict,
+                Instance = "/test/conflict",
+                Detail = "agent was already modified after you retrieved the latest data. So you would then override the most recent copy. As such, you will need to refresh the page (to get the latest data) then modify that, if required."
+            };
+
+            return StatusCode(409, error);
+        }
+
+        public class ResponseModel
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public DateTime DateTime { get; } = DateTime.Now;
+        }
+
+        [HttpGet("ModelTest")]
+        [ProducesResponseType(typeof(ResponseModel), (int)HttpStatusCode.OK)]
+        public IActionResult ModelTest()
+        {
+            var model = new ResponseModel
+            {
+                Id = 1,
+                Name = "blah"
+            };
+
+            return Ok(model);
+        }
+    }
+}

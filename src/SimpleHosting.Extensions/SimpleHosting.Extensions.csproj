@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <Version>0.0.0</Version>
+        <Authors>Justin Adler</Authors>
+        <Company>World-Domination Technologies Pty. Ltd.</Company>
+        <Product>Hosting extensions</Product>
+        <Description>This library is a collection of hosting extensions to help reduce the ceremony for setting up a common/typical ASP.NET application.</Description>
+        <Copyright>2021</Copyright>
+        <PackageProjectUrl>https://github.com/PureKrome/SimpleHosting.Extensions</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/PureKrome/SimpleHosting.Extensions</RepositoryUrl>
+        <RepositoryType>.net c# .net-core</RepositoryType>
+        <PackageTags>asp.net asp.net-core hosting</PackageTags>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+        <PackageIcon>Icon.jpg</PackageIcon>
+        <PackageId>WorldDomination.SimpleHosting.Extensions</PackageId>
+        <AssemblyName>WorldDomination.SimpleHosting.Extensions</AssemblyName>
+        <RootNamespace>WorldDomination.SimpleHosting.Extensions</RootNamespace>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="5.3.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.9" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.9" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.2" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None Include="..\..\LICENSE.txt">
+        <Pack>True</Pack>
+        <PackagePath></PackagePath>
+      </None>
+      <None Include="..\..\Icon.jpg">
+        <Pack>True</Pack>
+        <PackagePath></PackagePath>
+      </None>
+    </ItemGroup>
+
+</Project>

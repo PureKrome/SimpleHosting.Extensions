@@ -1,0 +1,110 @@
+name: Build and package Nuget
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ci-cd.yml
+      - global.json
+      - src/**
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration:
+          - DEBUG
+          - RELEASE
+    runs-on: ubuntu-latest
+
+    env:
+      DOTNET_NOLOGO : true
+      VERSION: 1.0.0-pre.${{ github.run_number }}
+
+    steps:
+      - name: Get tag
+        uses: olegtarasov/get-tag@v2.1
+
+      - name: Update NuGet version (RELEASE AND TAG ONLY)
+        if: matrix.configuration == 'RELEASE' && env.GIT_TAG_NAME != null
+        run: echo "VERSION=$GIT_TAG_NAME" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup .NET (via global.json)
+        uses: actions/setup-dotnet@v1
+
+      - name: Check installed dotnet version
+        run: dotnet --info
+
+      - name: Restore .NET dependencies
+        run: dotnet restore --verbosity quiet
+      
+      - name: Build
+        run: dotnet build --no-restore --configuration ${{ matrix.configuration }} --verbosity minimal /p:Version=${{ env.VERSION }} /p:ContinuousIntegrationBuild=true
+
+      - name: Testing with code coverage (DEBUG ONLY)
+        if: matrix.configuration == 'DEBUG'
+        run: |
+          dotnet test --configuration ${{ matrix.configuration }} --verbosity minimal --no-build --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory './CodeCoverageResults'
+          #bash <(curl -s https://codecov.io/bash) -s './CodeCoverageResults/' -f '*.xml' -Z -t 2ff33e7f-2775-44b4-980d-4b98f5ef4f11
+
+      - name: Testing (RELEASE ONLY)
+        if: matrix.configuration == 'RELEASE'
+        run: dotnet test --configuration ${{ matrix.configuration }} --verbosity minimal --no-build
+
+      - name: Pack nugets/symbols into an Artifact
+        run: dotnet pack --configuration ${{ matrix.configuration }} --output ./artifacts
+
+      - name: Publish artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: ./artifacts/
+          #path: |
+          #  ./artifacts/*.nupkg
+          #  ./artifacts/*.snupkg
+
+      - name: blah
+        run: |
+          echo ${{ github.actor }}
+          echo  ${{ secrets.GLOBAL_GHCR_TOKEN }}
+
+  #publish_gpr:
+  #  needs: build
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/download-artifact@v2
+  #      with:
+  #        name: packages
+
+  #    - name: Publish to GPR
+  #      run: |
+  #        dotnet nuget push "./artifacts/*.nupkg" \
+  #          --api-key ${{ secrets.GITHUB_TOKEN }} \
+  #          --source https://nuget.pkg.github.com/${{ github.repository_owner }}
+
+  publish_release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: packages
+
+      - name: Upload NuGet to Github 'Releases"
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./artifacts/*
+
+      #- name: Publish to nuget.org
+      #  run: |
+      #    dotnet nuget push "./artifacts/*.nupkg" \
+      #      --api-key ${{ secrets.NUGET_TOKEN }} \
+      #      --source https://api.nuget.org/v3/index.json
