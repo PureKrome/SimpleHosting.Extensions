@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "*"
     paths:
       - .github/workflows/ci-cd.yml
       - global.json
@@ -44,7 +46,7 @@ jobs:
         run: dotnet restore --verbosity quiet
       
       - name: Build
-        run: dotnet build --no-restore --configuration ${{ matrix.configuration }} --verbosity minimal /p:Version=${{ env.VERSION }} /p:ContinuousIntegrationBuild=true
+        run: dotnet build --no-restore --configuration ${{ matrix.configuration }} --verbosity minimal /p:version=${{ env.VERSION }} /p:ContinuousIntegrationBuild=true
 
       - name: Testing with code coverage (DEBUG ONLY)
         if: matrix.configuration == 'DEBUG'
@@ -57,7 +59,7 @@ jobs:
         run: dotnet test --configuration ${{ matrix.configuration }} --verbosity minimal --no-build
 
       - name: Pack nugets/symbols into an Artifact
-        run: dotnet pack --configuration ${{ matrix.configuration }} --output ./artifacts
+        run: dotnet pack --configuration ${{ matrix.configuration }} --output ./artifacts /p:version=${{ env.VERSION }} 
 
       - name: Publish artifacts
         uses: actions/upload-artifact@v2
