@@ -58,36 +58,29 @@ jobs:
         if: matrix.configuration == 'RELEASE'
         run: dotnet test --configuration ${{ matrix.configuration }} --verbosity minimal --no-build
 
-      - name: Pack nugets/symbols into an Artifact
+      - name: Pack nugets/symbols into an Artifact (RELEASE ONLY)
+        if: matrix.configuration == 'RELEASE'
         run: dotnet pack --configuration ${{ matrix.configuration }} --output ./artifacts /p:version=${{ env.VERSION }} 
 
-      - name: Publish artifacts
+      - name: Publish artifacts (RELEASE ONLY)
+        if: matrix.configuration == 'RELEASE'
         uses: actions/upload-artifact@v2
         with:
           name: packages
           path: ./artifacts/
-          #path: |
-          #  ./artifacts/*.nupkg
-          #  ./artifacts/*.snupkg
 
-      - name: blah
-        run: |
-          echo ${{ github.actor }}
-          echo  ${{ secrets.GLOBAL_GHCR_TOKEN }}
+  publish_gpr:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: packages
+          path: ./artifacts
 
-  #publish_gpr:
-  #  needs: build
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - uses: actions/download-artifact@v2
-  #      with:
-  #        name: packages
-
-  #    - name: Publish to GPR
-  #      run: |
-  #        dotnet nuget push "./artifacts/*.nupkg" \
-  #          --api-key ${{ secrets.GITHUB_TOKEN }} \
-  #          --source https://nuget.pkg.github.com/${{ github.repository_owner }}
+      - name: Publish to GPR
+        run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}
 
   publish_release:
     needs: build
@@ -97,16 +90,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: packages
+          path: ./artifacts
 
-      - name: Upload NuGet to Github 'Releases"
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: ./artifacts/*
-
-      #- name: Publish to nuget.org
-      #  run: |
-      #    dotnet nuget push "./artifacts/*.nupkg" \
-      #      --api-key ${{ secrets.NUGET_TOKEN }} \
-      #      --source https://api.nuget.org/v3/index.json
+      - name: Publish to nuget.org
+        run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
